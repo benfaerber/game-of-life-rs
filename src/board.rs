@@ -6,7 +6,7 @@ const GUI_BLANK: &str = " . ";
 const FILE_CELL: &str = "o";
 const FILE_BLANK: &str = ".";
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Cell {
   Dead,
   Alive
@@ -80,6 +80,22 @@ impl Board {
       });
 
       format!("{}{}\n", acc, str_row)
+    })
+  }
+
+  pub fn count_neighbors(&self, cell_loc: Point) -> i32 {
+    let range_y = -1..=1;
+    range_y.fold(0, |neighbors, y_mod| {
+      let range_x = -1..=1;
+
+      neighbors + range_x.fold(0, |c_neighbors, x_mod| {
+        let offset = cell_loc.add(Point {x: x_mod, y: y_mod});
+        let no_change = y_mod == 0 && x_mod == 0;
+        if no_change || !self.in_range(&offset) { return c_neighbors }
+
+        let alive_offset = self.is_alive(offset) as i32;
+        c_neighbors + alive_offset
+      })
     })
   }
 
