@@ -1,9 +1,13 @@
 use std::fs;
+use std::env;
 use std::fmt;
 use std::{thread, time};
 
+const DEFAULT_FILENAME: &str = "glider.txt";
+const DEFAULT_DAYS: i32 = 25;
+
 const GUI_CELL: &str = "(_)";
-const GUI_BLANK: &str = "...";
+const GUI_BLANK: &str = " . ";
 const FILE_CELL: &str = "o";
 const FILE_BLANK: &str = ".";
 
@@ -58,7 +62,6 @@ impl Board {
     .trim()
     .split('\n')
     .map(|str_y| str_y
-      .trim()
       .split("")
       .filter(|l| l != &"")
       .map(|l| Cell::from_str(l))
@@ -158,20 +161,24 @@ fn simulate_step(board: &Board) -> Board {
   Board::from(grid)
 }
 
-fn main() {
-  let start_file = "glider.txt";
-  let has_delay = true;
+struct Simulation {
+  name: String,
+  board: Board,
+  days: i32,
+  delayed: bool
+}
 
-  let board: Board = Board::from_file(start_file);
+fn run_simulation(simulation: Simulation) {
+  let Simulation {name, board, days, delayed} = simulation;
+
   let mut output = "".to_string();
 
-  let days = 25;
   (0..days).fold(board, |last_board, day_index| {
     let daily_output = format!("Day {}:\n{}\n", day_index + 1, &last_board);
     print!("{}", daily_output);
     output.push_str(&daily_output);
 
-    if has_delay {
+    if delayed {
       let sleep_period = time::Duration::from_millis(100);
       thread::sleep(sleep_period);
     }
@@ -179,5 +186,42 @@ fn main() {
     simulate_step(&last_board)
   });
 
-  save_simulation_output(start_file, days, output);
+  save_simulation_output(name.as_str(), days, output);
+}
+
+fn load_simulation(filename: &str, days: i32) {
+  let board: Board = Board::from_file(filename);
+
+  let sim = Simulation {
+    name: filename.to_string(),
+    board: board,
+    days: days,
+    delayed: true
+  };
+
+  run_simulation(sim);
+}
+
+fn display_help() {
+  println!("Conway's Game of Life Rust\nOptions: filename.txt days")
+}
+
+fn main() {
+  let args: Vec<String> = env::args().collect();
+
+  match args.len() {
+    1 => {
+      display_help()
+    },
+    2 => {
+      let filename = args[1].as_str();
+      load_simulation(filename, DEFAULT_DAYS);
+    },
+    3 => {
+      let filename = args[1].as_str();
+      let days = args[2].parse::<i32>().unwrap_or(0);
+      load_simulation(filename, days)
+    },
+    _ => load_simulation(DEFAULT_FILENAME, DEFAULT_DAYS),
+  }
 }
