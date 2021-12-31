@@ -1,4 +1,5 @@
 use std::fs;
+use std::{thread, time};
 
 #[derive(PartialEq, Debug)]
 enum Cell {
@@ -9,17 +10,17 @@ enum Cell {
 
 impl Cell {
     fn to_string(&self) -> String {
-        match &self {
-            Cell::Alive => "o",
-            Cell::Dead => ".",
+        match self {
+            Cell::Alive => "(_)",
+            Cell::Dead => "...",
             _ => ""
         }.to_string()
     }
 
     fn from_str(s: &str) -> Cell {
         match s {
-            "o" => Cell::Alive,
-            "." => Cell::Dead,
+            "(_)" => Cell::Alive,
+            "..." => Cell::Dead,
             _ => Cell::Blank
         }
     }
@@ -53,6 +54,25 @@ impl Board {
         Board { grid }
     }
 
+    fn from_file(filename: &str) -> Board {
+        let text = fs::read_to_string(format!("boards/{}", filename))
+        .expect("There was an error reading this file!");
+
+        let grid = text
+        .trim()
+        .split('\n')
+        .map(|str_y| str_y
+            .trim()
+            .split("")
+            .map(|letter| Cell::from_str(letter))
+            .filter(|c| c != &Cell::Blank)
+            .collect()
+        )
+        .collect();
+
+        Board::from(grid)
+    }
+
     fn render(&self) -> String {
         self.grid
         .iter()
@@ -77,25 +97,6 @@ impl Board {
         self.get_cell(point) == Cell::Alive
     }
 
-}
-
-fn read_board(filename: &str) -> Board {
-    let text = fs::read_to_string(format!("boards/{}", filename))
-    .expect("There was an error reading this file!");
-
-    let grid = text
-    .trim()
-    .split('\n')
-    .map(|str_y| str_y
-        .trim()
-        .split("")
-        .map(|letter| Cell::from_str(letter))
-        .filter(|c| c != &Cell::Blank)
-        .collect()
-    )
-    .collect();
-
-    Board::from(grid)
 }
 
 fn save_simulation_output(inputname: &str, steps: i32, output: String) {
@@ -154,16 +155,21 @@ fn simulate_step(board: &Board) -> Board {
 
 fn main() {
     let start_file = "glider.txt";
+    let has_delay = true;
 
-    let board: Board = read_board(start_file);
-
+    let board: Board = Board::from_file(start_file);
     let mut output = "".to_string();
 
-    let days = 15;
+    let days = 20;
     (0..days).fold(board, |last_board, day_index| {
         let daily_output = format!("Day {}:\n{}\n", day_index + 1, &last_board.render());
         print!("{}", daily_output);
         output.push_str(&daily_output);
+
+        if has_delay {
+            let sleep_period = time::Duration::from_millis(100);
+            thread::sleep(sleep_period);
+        }
 
         simulate_step(&last_board)
     });
