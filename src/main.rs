@@ -11,6 +11,8 @@ const GUI_BLANK: &str = " . ";
 const FILE_CELL: &str = "o";
 const FILE_BLANK: &str = ".";
 
+const ANIMATION_FRAME_DURATION_MS: u64 = 250;
+
 #[derive(PartialEq, Debug)]
 enum Cell {
   Dead,
@@ -179,7 +181,7 @@ fn run_simulation(simulation: Simulation) {
     output.push_str(&daily_output);
 
     if delayed {
-      let sleep_period = time::Duration::from_millis(100);
+      let sleep_period = time::Duration::from_millis(ANIMATION_FRAME_DURATION_MS);
       thread::sleep(sleep_period);
     }
 
@@ -203,12 +205,30 @@ fn load_simulation(filename: &str, days: i32) {
 }
 
 fn display_help() {
-  println!("Conway's Game of Life Rust\nOptions: filename.txt days")
+  let title = "Conway's Game of Life Rust";
+  let underline = str::repeat("-", title.len());
+  println!("{}\n{}", title, underline);
+
+
+  let mut param_count = 1;
+  let mut print_param = |p: &str, def: &str| {
+    println!("  {}. {}", param_count, p);
+    println!("     Default: {}", def);
+    param_count += 1;
+  };
+
+  println!("Params:");
+  print_param("Filename: the board to start the simulation with, pulled from boards folder, must end in .txt", DEFAULT_FILENAME);
+  print_param("Days: the number of days (iterations) to run the simulation", DEFAULT_DAYS.to_string().as_str());
+
+  println!("\nExamples:");
+  println!("  game-of-life-rs glider.txt");
+  println!("  game-of-life-rs calculator.txt 200");
 }
 
 fn main() {
   let args: Vec<String> = env::args().collect();
-
+  println!("{:?}", args);
   match args.len() {
     1 => {
       display_help()
