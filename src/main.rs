@@ -83,6 +83,12 @@ impl Board {
     self.get_cell(point) == Cell::Alive
   }
 
+  fn in_range(&self, point: &Point) -> bool {
+    let lower_limit = point.y < 0 || point.x < 0;
+    let upper_limit = point.y >= (self.grid.len() as i32) || point.x >= (self.grid[0].len() as i32);
+    !lower_limit && !upper_limit
+  }
+
 }
 
 fn save_simulation_output(inputname: &str, steps: i32, output: String) {
@@ -108,8 +114,7 @@ fn count_neighbors(board: &Board, cell_loc: Point) -> i32 {
 
       let lower_limit = offset.y < 0 || offset.x < 0;
       let upper_limit = offset.y >= (board.grid.len() as i32) || offset.x >= (board.grid[0].len() as i32);
-      let no_change = y_mod == 0 && x_mod == 0;
-      if lower_limit || upper_limit || no_change { return c_neighbors }
+      if !board.in_range(&offset) { return c_neighbors }
 
       let is_alive = board.is_alive(offset);
       c_neighbors + (is_alive as i32)
