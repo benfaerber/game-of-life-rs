@@ -9,33 +9,6 @@ const DEFAULT_FILENAME: &str = "glider.txt";
 const DEFAULT_DAYS: i32 = 25;
 const ANIMATION_FRAME_DURATION_MS: u64 = 250;
 
-fn simulate_step(board: &board::Board) -> board::Board {
-  let grid = board.grid
-  .iter()
-  .enumerate()
-  .map(|(y_index, row)| {
-    row
-    .iter()
-    .enumerate()
-    .map(|(x_index, cell)| {
-      let cell_loc = board::Point { x: x_index as i32, y: y_index as i32 };
-      let neighbors = board.count_neighbors(cell_loc);
-      let was_alive = cell == &board::Cell::Alive;
-      let is_alive = if was_alive {
-        neighbors == 2 || neighbors == 3
-      } else {
-        neighbors == 3
-      };
-
-      if is_alive { board::Cell::Alive } else { board::Cell::Dead }
-    })
-    .collect()
-  })
-  .collect();
-
-  board::Board::from(grid)
-}
-
 struct Simulation {
   name: String,
   board: board::Board,
@@ -59,7 +32,7 @@ impl Simulation {
         thread::sleep(sleep_period);
       }
 
-      simulate_step(&last_board)
+      last_board.simulate_step()
     });
 
     self.save(output);
@@ -72,20 +45,17 @@ impl Simulation {
     let filepath = format!("output/{}-{}-days.txt", base, self.days);
     fs::write(filepath, output).expect("Error writing file!");
   }
-}
 
+  fn load(filename: &str, days: i32) -> Simulation {
+    let board: board::Board = board::Board::from_file(filename);
 
-fn load_simulation(filename: &str, days: i32) {
-  let board: board::Board = board::Board::from_file(filename);
-
-  let simulation = Simulation {
-    name: filename.to_string(),
-    board: board,
-    days: days,
-    delayed: true
-  };
-
-  simulation.run();
+    Simulation {
+      name: filename.to_string(),
+      board: board,
+      days: days,
+      delayed: true
+    }
+  }
 }
 
 fn main() {
@@ -97,13 +67,13 @@ fn main() {
     },
     2 => {
       let filename = args[1].as_str();
-      load_simulation(filename, DEFAULT_DAYS);
+      Simulation::load(filename, DEFAULT_DAYS).run();
     },
     3 => {
       let filename = args[1].as_str();
       let days = args[2].parse::<i32>().unwrap_or(0);
-      load_simulation(filename, days)
+      Simulation::load(filename, days).run()
     },
-    _ => load_simulation(DEFAULT_FILENAME, DEFAULT_DAYS),
+    _ => Simulation::load(DEFAULT_FILENAME, DEFAULT_DAYS).run(),
   }
 }
