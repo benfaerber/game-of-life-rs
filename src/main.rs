@@ -1,27 +1,31 @@
 use std::fs;
+use std::fmt;
 use std::{thread, time};
+
+const GUI_CELL: &str = "(_)";
+const GUI_BLANK: &str = "...";
+const FILE_CELL: &str = "o";
+const FILE_BLANK: &str = ".";
 
 #[derive(PartialEq, Debug)]
 enum Cell {
   Dead,
-  Alive,
-  Blank
+  Alive
 }
 
 impl Cell {
   fn to_string(&self) -> String {
     match self {
-      Cell::Alive => "(_)",
-      Cell::Dead => "...",
-      _ => ""
+      Cell::Alive => GUI_CELL,
+      Cell::Dead => GUI_BLANK
     }.to_string()
   }
 
   fn from_str(s: &str) -> Cell {
     match s {
-      "o" => Cell::Alive,
-      "." => Cell::Dead,
-      _ => Cell::Blank
+      FILE_CELL => Cell::Alive,
+      FILE_BLANK => Cell::Dead,
+      _ => Cell::Dead
     }
   }
 }
@@ -29,6 +33,12 @@ impl Cell {
 struct Point {
   x: i32,
   y: i32
+}
+
+impl Point {
+  fn add(&self, other: Point) -> Point {
+    Point { x: self.x + other.x, y: self.y + other.y }
+  }
 }
 
 struct Board {
@@ -50,8 +60,8 @@ impl Board {
     .map(|str_y| str_y
       .trim()
       .split("")
-      .map(|letter| Cell::from_str(letter))
-      .filter(|c| c != &Cell::Blank)
+      .filter(|l| l != &"")
+      .map(|l| Cell::from_str(l))
       .collect()
     )
     .collect();
@@ -91,6 +101,12 @@ impl Board {
 
 }
 
+impl fmt::Display for Board {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "{}", self.render())
+  }
+}
+
 fn save_simulation_output(inputname: &str, steps: i32, output: String) {
   let parts: Vec<&str> = inputname.split(".").collect();
   let base: &str = parts[0];
@@ -105,19 +121,12 @@ fn count_neighbors(board: &Board, cell_loc: Point) -> i32 {
     let range_x = -1..=1;
 
     neighbors + range_x.fold(0, |c_neighbors, x_mod| {
-      if y_mod == 0 && x_mod == 0 { return c_neighbors }
+      let offset = cell_loc.add(Point {x: x_mod, y: y_mod});
+      let no_change = y_mod == 0 && x_mod == 0;
+      if no_change || !board.in_range(&offset) { return c_neighbors }
 
-      let offset = Point {
-        x: cell_loc.x + x_mod,
-        y: cell_loc.y + y_mod
-      };
-
-      let lower_limit = offset.y < 0 || offset.x < 0;
-      let upper_limit = offset.y >= (board.grid.len() as i32) || offset.x >= (board.grid[0].len() as i32);
-      if !board.in_range(&offset) { return c_neighbors }
-
-      let is_alive = board.is_alive(offset);
-      c_neighbors + (is_alive as i32)
+      let alive_offset = board.is_alive(offset) as i32;
+      c_neighbors + alive_offset
     })
   })
 }
@@ -156,9 +165,9 @@ fn main() {
   let board: Board = Board::from_file(start_file);
   let mut output = "".to_string();
 
-  let days = 20;
+  let days = 25;
   (0..days).fold(board, |last_board, day_index| {
-    let daily_output = format!("Day {}:\n{}\n", day_index + 1, &last_board.render());
+    let daily_output = format!("Day {}:\n{}\n", day_index + 1, &last_board);
     print!("{}", daily_output);
     output.push_str(&daily_output);
 
