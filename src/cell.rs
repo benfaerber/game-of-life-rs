@@ -22,6 +22,14 @@ pub enum Cell {
 }
 
 impl Cell {
+  pub fn alive(is_alive: bool) -> Cell {
+    if is_alive {
+      Cell::Alive
+    } else {
+      Cell::Dead
+    }
+  }
+
   pub fn to_string(&self) -> String {
     match (self, DISPLAY_TYPE) {
       (Cell::Alive, DisplayType::Ascii) => ASCII_CELL,

@@ -87,13 +87,9 @@ impl Board {
         let cell_loc = Point { x: x_index as i32, y: y_index as i32 };
         let neighbors = self.count_neighbors(cell_loc);
         let was_alive = current_cell == &cell::Cell::Alive;
-        let is_alive = if was_alive {
-          neighbors == 2 || neighbors == 3
-        } else {
-          neighbors == 3
-        };
+        let is_alive = neighbors == 3 || (was_alive && neighbors == 2);
 
-        if is_alive { cell::Cell::Alive } else { cell::Cell::Dead }
+        cell::Cell::alive(is_alive)
       })
       .collect()
     })
