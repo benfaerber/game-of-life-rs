@@ -1,7 +1,17 @@
 use std::fmt;
 
-const GUI_CELL: &str = "(_)";
-const GUI_BLANK: &str = " . ";
+enum DisplayType {
+  Emoji,
+  Ascii
+}
+
+const DISPLAY_TYPE: DisplayType = DisplayType::Ascii;
+
+const ASCII_CELL: &str = "(_)";
+const ASCII_BLANK: &str = " . ";
+const EMOJI_CELL: &str = "🦠";
+const EMOJI_BLANK: &str = "⚫";
+
 const FILE_CELL: &str = "o";
 const FILE_BLANK: &str = ".";
 
@@ -13,9 +23,11 @@ pub enum Cell {
 
 impl Cell {
   pub fn to_string(&self) -> String {
-    match self {
-      Cell::Alive => GUI_CELL,
-      Cell::Dead => GUI_BLANK
+    match (self, DISPLAY_TYPE) {
+      (Cell::Alive, DisplayType::Ascii) => ASCII_CELL,
+      (Cell::Dead,  DisplayType::Ascii) => ASCII_BLANK,
+      (Cell::Alive, DisplayType::Emoji) => EMOJI_CELL,
+      (Cell::Dead,  DisplayType::Emoji) => EMOJI_BLANK,
     }.to_string()
   }
 

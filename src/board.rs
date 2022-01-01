@@ -51,8 +51,8 @@ impl Board {
     .fold(blank(), |acc, row| {
       let str_row = row
       .iter()
-      .fold(blank(), |acc, cell| {
-        format!("{}{}", acc, cell)
+      .fold(blank(), |acc, current_cell| {
+        format!("{}{}", acc, current_cell)
       });
 
       format!("{}{}\n", acc, str_row)
