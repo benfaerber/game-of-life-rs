@@ -5,10 +5,11 @@ pub fn display(default_filename: &str, default_days: i32) {
   println!("{}\n{}", title, underline);
 
 
+  let tab = |indent: usize| str::repeat("  ", indent);
   let mut param_count = 1;
   let mut print_param = |p: &str, def: &str| {
-    println!("  {}. {}", param_count, p);
-    println!("     Default: {}", def);
+    println!("{}{}. {}", tab(1), param_count, p);
+    println!("{} Default: {}", tab(2), def);
     param_count += 1;
   };
 

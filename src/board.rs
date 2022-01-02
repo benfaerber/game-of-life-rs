@@ -1,50 +1,85 @@
 use std::fmt;
 use std::fs;
+use std::process;
 
 #[path = "./cell.rs"]
 mod cell;
+type Cell = cell::Cell;
 
-#[derive(PartialEq, Debug, Clone, Copy)]
-pub struct Point {
-  pub x: i32,
-  pub y: i32
-}
+#[path = "./point.rs"]
+mod point;
+type Point = point::Point;
 
-impl Point {
-  pub fn add(&self, other: Point) -> Point {
-    Point { x: self.x + other.x, y: self.y + other.y }
-  }
-}
+#[path = "./parser.rs"]
+mod parser;
+
+type Grid = Vec<Vec<Cell>>;
 
 #[derive(PartialEq, Debug)]
 pub struct Board {
-  pub grid: Vec<Vec<cell::Cell>>
+  pub grid: Grid
 }
 
 impl Board {
-  pub fn from(grid: Vec<Vec<cell::Cell>>) -> Board {
-    Board { grid }
+  pub fn from(grid: Grid) -> Self {
+    Self { grid }
   }
 
-  pub fn from_file(filename: &str) -> Board {
-    let text = fs::read_to_string(format!("boards/{}", filename))
-    .expect("There was an error reading this file!");
+  pub fn from_file(filename: &str) -> Self {
 
+    let err = || "Error!".to_string();
+    let text = fs::read_to_string(format!("boards/{}", filename))
+    .unwrap_or(err());
+
+    if text == err() {
+      println!("The file {} does not exist! Please try again.", filename);
+      process::exit(1)
+    }
+
+    let ext = parser::get_extenstion(filename);
+    match ext.as_str() {
+      "txt" => Self::from_txt_file(text),
+      "cell" => Self::from_cell_file(text),
+      _ => Self::from_txt_file(text)
+    }
+  }
+
+  fn from_txt_file(text:  String) -> Self {
     let grid = text
     .trim()
     .split('\n')
     .map(|str_y| str_y
       .split("")
-      .filter(|l| l != &"")
-      .map(|l| cell::Cell::from_str(l))
+      .filter(|l| l.to_owned() != "")
+      .map(|l| Cell::from_str(l))
       .collect()
     )
     .collect();
 
-    Board::from(grid)
+    Self::from(grid)
   }
 
-  pub fn render(&self) -> String {
+  fn from_cell_file(text: String) -> Self {
+    let meta = parser::get_metadata(text.as_str());
+    println!("{:?}", meta);
+
+    let raw_cell_lines = parser::find_significant_lines(text.split("\n").collect());
+    let pad_cell_lines = parser::pad_cell_lines(raw_cell_lines);
+    let grid: Grid = pad_cell_lines
+    .iter()
+    .map(|line| {
+      line
+      .replace("O", "o")
+      .split("")
+      .map(|l| Cell::from_str(l))
+      .collect()
+    })
+    .collect();
+
+    Self::from(grid)
+  }
+
+  fn render(&self) -> String {
     let blank = || "".to_string();
     self.grid
     .iter()
@@ -64,7 +99,7 @@ impl Board {
     range().fold(0, |neighbors, y_mod| {
       neighbors + range().fold(0, |c_neighbors, x_mod| {
         let no_change = y_mod == 0 && x_mod == 0;
-        let offset = cell_loc.add(Point {x: x_mod, y: y_mod});
+        let offset = cell_loc.add(Point::from(x_mod, y_mod));
         if no_change || !self.in_range(offset) {
           c_neighbors
         } else {
@@ -75,7 +110,7 @@ impl Board {
     })
   }
 
-  pub fn simulate_step(&self) -> Board {
+  pub fn simulate_step(&self) -> Self {
     let grid = self.grid
     .iter()
     .enumerate()
@@ -84,26 +119,26 @@ impl Board {
       .iter()
       .enumerate()
       .map(|(x_index, current_cell)| {
-        let cell_loc = Point { x: x_index as i32, y: y_index as i32 };
+        let cell_loc = Point::from_usize(x_index, y_index);
         let neighbors = self.count_neighbors(cell_loc);
-        let was_alive = current_cell == &cell::Cell::Alive;
+        let was_alive = current_cell.to_owned() == Cell::Alive;
         let is_alive = neighbors == 3 || (was_alive && neighbors == 2);
 
-        cell::Cell::alive(is_alive)
+        Cell::alive(is_alive)
       })
       .collect()
     })
     .collect();
 
-    Board::from(grid)
+    Self::from(grid)
   }
 
-  pub fn get_cell(&self, point: Point) -> cell::Cell {
+  pub fn get_cell(&self, point: Point) -> Cell {
     self.grid[point.y as usize][point.x as usize]
   }
 
   pub fn is_alive(&self, point: Point) -> bool {
-    self.get_cell(point) == cell::Cell::Alive
+    self.get_cell(point) == Cell::Alive
   }
 
   pub fn in_range(&self, point: Point) -> bool {
